@@ -4,3 +4,5 @@
 
 ### Give a (chromosome level) pseudo-scaffold to a set of contig using synteny based whole genome alignment 
 
+
+Flow: last--> scaf(long read) --> matepair(scaf, matepair) --> liftover

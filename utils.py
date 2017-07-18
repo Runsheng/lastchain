@@ -43,6 +43,23 @@ def which(program):
     return None
 
 
+def bin_check(programs):
+    """
+    check the lastal bins
+    :return:
+    """
+    def bin_is_correct(program):
+        if which(program) is None:
+            print("No {program} bin in $PATH".format(program=program))
+            return False
+        else:
+            print("{program} bin in $PATH".format(program=program))
+            return True
+
+    for program in programs:
+        bin_is_correct(program)
+
+
 def myexe(cmd, timeout=0):
     """
     a simple wrap of the shell

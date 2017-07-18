@@ -6,17 +6,20 @@
 
 """
 The main functions for the pseudo-scaffold
+
+Todo: add the chain function and modify the contig_filter function, for the using of large MB level scafs
 """
 
 # generate a name list from the last output table, select the chr X and length 500
 # import pickle as pickle
 from collections import OrderedDict
-from utils import fasta2dic, reverse_complement
+from utils import fasta2dic, reverse_complement, dic2dic, dic2fasta
+import os
 
 def contig_filter(filename, mum_cutoff):
     """
     # get the longest MUM for each contig, this MUM can be used to define the location of the contig
-    # mum_cutoff is the minmis length for a MUM record to be retained
+    # mum_cutoff is the min length for a MUM record to be retained
     # get a dict to store the contig order
 
     # add another filter, do not use un or _random contig to layout the contigs,
@@ -29,7 +32,7 @@ def contig_filter(filename, mum_cutoff):
             try:
                 line_l = line.split("\t")
                 chro = line_l[1]
-                if (chro == "un") or ("random" in chro):
+                if (chro == "un") or ("random" in chro) or ("NA" in chro) :
                     pass
                 else:
                     name = line_l[6]
@@ -49,6 +52,11 @@ def contig_filter(filename, mum_cutoff):
                 pass
     # give some summary info
     print "Total ", len(contig_d), " contigs can be used."
+    # if the scaf from the sspace package, will have the length information
+    #ks= sorted(contig_d.keys(), key=lambda x: (int(x.split("|")[0].replace("scaffold", ""))))
+    #for k in ks:
+    #    print contig_d[k]
+
     return contig_d
 
 
@@ -64,9 +72,9 @@ def contig_order(filename, mum_cutoff):
     contig_use = []
     for contig_name, contig_l in contig_d.iteritems():
         contig_use.append(contig_l)
-    print len(contig_use)
+    #print(len(contig_use)) # debug only
 
-    # sort according to the chr name and the position
+    # sort according to the chro name and the position
     contig_use_s = sorted(contig_use, key=lambda line: (line[1], int(line[2])))
 
     chro_d = {}
@@ -85,7 +93,7 @@ def contig_order(filename, mum_cutoff):
     return chro_d, contig_d
 
 
-def contig_layout(filename, mum_cutoff, ref_dict, prefix, exlist):
+def contig_layout(filename, mum_cutoff, ref_dict, prefix, exlist, n100=1):
     """
     lay out the contigs and add 100 "N" between contigs
     generate a gff file to annotate the position of contigs in the pseudo-chromosome
@@ -97,7 +105,7 @@ def contig_layout(filename, mum_cutoff, ref_dict, prefix, exlist):
 
     """
     chro_d, contig_d = contig_order(filename=filename, mum_cutoff=mum_cutoff)
-    n_100 = "N" * 100
+    n_100 = "N" * 100 * n100
 
     chro_gff = []
 
@@ -127,7 +135,7 @@ def contig_layout(filename, mum_cutoff, ref_dict, prefix, exlist):
 
             chro_gff.append(chrogff_str)
 
-            start = start + len(contig_seq) + 100  # this is right, equals to start=end +100 +1
+            start = start + len(contig_seq) + len(n_100) # this is right, equals to start=end +100 +1
 
         chro_allseq[(prefix + chro)] = "".join(chro_seq)
 
@@ -148,14 +156,23 @@ def gff2file(chro_gff, out="contig.gff"):
             f.write(record)
             f.write("\n")
 
-if __name__ == "__main__":
-    import os
-    from utils import dic2dic, dic2fasta
-    os.chdir("/home/zhaolab1/myapp/lastchain/test")
-    ref_dict= dic2dic(fasta2dic("csp93ctg.fasta"))
-    exlist=[]
-    chro_allseq, chro_gff = contig_layout(filename="scafone.txt", mum_cutoff=500, ref_dict=ref_dict, prefix="cni",
-                                          exlist=[])
 
-    dic2fasta(chro_allseq, "scaf.fasta")
-    gff2file(chro_gff, "scaf.gff")
+def flow_pseudo_scaf(fasta_file, chain_tab, out_prefix="scaf", prefix="", exlist=[], wkdir=None, n100=1):
+    if wkdir is None:
+        wkdir=os.getcwd()
+    os.chdir(wkdir)
+    ref_dict=dic2dic(fasta2dic(fasta_file))
+    chro_allseq, chro_gff = contig_layout(filename=chain_tab, mum_cutoff=500, ref_dict=ref_dict, prefix=prefix,
+                                          exlist=exlist, n100=n100)
+
+    dic2fasta(chro_allseq, "{out_prefix}.fasta".format(out_prefix=out_prefix))
+    gff2file(chro_gff, "{out_prefix}.gff".format(out_prefix=out_prefix))
+
+
+if __name__ == "__main__":
+
+    #wkdir="/home/zhaolab1/myapp/lastchain/test"
+    #flow_pseudo_scaf(fasta_file="cni_nanobac.fasta", chain_tab="chro.txt", out_prefix="chro", wkdir=wkdir)
+
+    wkdir="/home/zhaolab1/nanopore/nanoju"
+    flow_pseudo_scaf(fasta_file="csp93ctg.fasta", chain_tab="chro_chain.txt", out_prefix="chro", wkdir=wkdir)

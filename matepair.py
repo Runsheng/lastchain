@@ -8,11 +8,27 @@
 """
 give the fosmid-end and bac a try
 fosmid-end,
-- matepair reads, pre-splited
+- matepair reads, pre-split
+
 bac,
-- to accommodate the specifc-designed bac-library, generate a .tab file for the using in sspace
+- to accommodate the specific-designed bac-library, generate a .tab file for the using in sspace
 - get bac.tab (from pair-seq) and bac_short.tab (from single-end)
+
+WARNING!!!!!
+ONLY used for the test data, not generalized!
 """
+
+import pysam
+
+def bac_tab():
+    pass
+
+
+
+
+
+
+
 
 
 
