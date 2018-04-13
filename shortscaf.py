@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2017/3/22 16:41
 # @Author  : Runsheng     
-# @File    : scaf.py
+# @File    : shortscaf.py
 
 """
+Warning: This scaf protocol only works well when the contig is small, which means the best MUM is the longest MUM
+
 The main functions for the pseudo-scaffold
 
 Todo: add the chain function and modify the contig_filter function, for the using of large MB level scafs
@@ -13,8 +15,9 @@ Todo: add the chain function and modify the contig_filter function, for the usin
 # generate a name list from the last output table, select the chr X and length 500
 # import pickle as pickle
 from collections import OrderedDict
-from utils import fasta2dic, reverse_complement, dic2dic, dic2fasta
+from Utils import fasta2dic, reverse_complement, dic2dic, dic2fasta
 import os
+
 
 def contig_filter(filename, mum_cutoff):
     """
@@ -32,6 +35,7 @@ def contig_filter(filename, mum_cutoff):
             try:
                 line_l = line.split("\t")
                 chro = line_l[1]
+                # This is wormbase style filter (<WS252), the new filter should use the length
                 if (chro == "un") or ("random" in chro) or ("NA" in chro) :
                     pass
                 else:
@@ -89,7 +93,7 @@ def contig_order(filename, mum_cutoff):
     # give some summary info
     for k, v in chro_d.iteritems():
         number = len(v)
-        print "There is %d contigs for %s." % (number, k)
+        print("There is %d contigs for %s." % (number, k))
     return chro_d, contig_d
 
 
@@ -157,7 +161,7 @@ def gff2file(chro_gff, out="contig.gff"):
             f.write("\n")
 
 
-def flow_pseudo_scaf(fasta_file, chain_tab, out_prefix="scaf", prefix="", exlist=[], wkdir=None, n100=1):
+def flow_pseudo_short(fasta_file, chain_tab, out_prefix="scaf", prefix="", exlist=[], wkdir=None, n100=1):
     if wkdir is None:
         wkdir=os.getcwd()
     os.chdir(wkdir)
@@ -175,4 +179,4 @@ if __name__ == "__main__":
     #flow_pseudo_scaf(fasta_file="cni_nanobac.fasta", chain_tab="chro.txt", out_prefix="chro", wkdir=wkdir)
 
     wkdir="/home/zhaolab1/nanopore/nanoju"
-    flow_pseudo_scaf(fasta_file="csp93ctg.fasta", chain_tab="chro_chain.txt", out_prefix="chro", wkdir=wkdir)
+    flow_pseudo_short(fasta_file="csp93ctg.fasta", chain_tab="chro_chain.txt", out_prefix="chro", wkdir=wkdir)

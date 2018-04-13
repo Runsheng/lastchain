@@ -7,11 +7,15 @@
 """
 The flow for chain contig using longer scaf or chro
 (same species assembly or even different species)
+
+TODO: re-write the chain anchor function
 """
 
 import pandas
 from operator import itemgetter  # used for sort
-from utils import myexe
+from Utils import myexe
+from operator import itemgetter
+
 
 def read_last_txt(txtfile):
     """
@@ -23,16 +27,105 @@ def read_last_txt(txtfile):
     print(myexe(cmd_rmspace))
 
     headrow=["score1","chr1", "start1", "len1","direct1", "fulllen1",
-             "chr2", "start2", "len2","direct2", "fulllen2","mapping"]
+             "chr2", "start2", "len2","direct2", "fulllen2","mapping", "mismap"]
     df = pandas.read_csv(txtfile, sep="\t", comment="#", header=None)
     print(df.shape)
-    df.columns = headrow
-    print(df.shape)
+    if df.shape[1]==len(headrow):
+        df.columns = headrow
+    else:
+        print("Length unmatch! Please check the txt alignment file!")
     return df
 
 
+def read_blast_m6(txtfile):
+    """
+    :param textfile : the blast m6 file
+    :return: a dataframe for the alignment
+    """
 
-def chain_tab(df, chain_interval=15000, anchor_min=200):
+
+def df2anchor(df):
+    """
+
+    :param df:
+    :return: anchor dict for each scaf, as {chr2:[(chr2, chr1, start1, end1, direction)...]...}
+    """
+
+    """
+    get a dict for each scaf, with all other chrom/scaf
+    """
+    anchor_d={}
+
+    for index, row in df.iterrows():
+        chr2=row[6]
+        chr1=row[1]
+        start1=int(row[2])
+        len1=int(row[3])
+        end1=start1+len1
+        direct1=row[4]
+        direct2=row[9]
+        direction="F" if direct1==direct2 else "R"
+        anchor_line=(chr2, chr1, start1, end1, direction)
+
+        try:
+            anchor_d[chr2].append(anchor_line)
+        except KeyError:
+            anchor_d[chr2]=[]
+            anchor_d.append(anchor_line)
+
+    return anchor_d
+
+
+def chain_anchor(anchors, chain_interval=5000, anchor_min=50):
+    """
+        Input anchor is the list with 5 element tuples with sorted
+        'C00126:229:C8T9TANXX:8:1216:8219:61822BARCODECCCATGGCTGTTGGAGACAG','ctg100000399369',59929,60239,'R'),
+
+        return: 'ctg100000399369',59929,60239,'R', count
+    """
+    anchor = sorted(anchors, key=itemgetter(1, -1, 2, 3))
+    chains = []
+    count = 0
+    for n, line in enumerate(anchor):
+        if n == 0:
+            read, chro, start, end, direction = line
+            chain_start = start
+            chain_end = end
+            chain_direction = direction
+            # print "first chro", chro
+            count += 1
+        elif n > 0:
+            read, chro, start, end, direction = line
+            read_p, chro_p, start_p, end_p, direction_p = anchor[n - 1]  # previous one
+
+            if chro == chro_p and direction == direction_p:
+                if end_p >= chain_end and end_p - chain_end <= chain_interval:
+                    chain_end = end_p
+                    count += 1
+                elif end_p > chain_end and end_p - chain_end > chain_interval:
+                    chains.append((chro, chain_start, chain_end, chain_direction,
+                                   count))  # if break, add the previous chain to list
+                    # print "New chr", chro
+                    chain_start = start
+                    chain_end = end
+                    chain_direction = direction
+                    count = 1
+
+            elif chro != chro_p or direction != direction_p:
+                chains.append(
+                    (chro, chain_start, chain_end, chain_direction, count))  # if break, add the previous chain to list
+                # print "New chr", chro
+                chain_start = start
+                chain_end = end
+                chain_direction = direction
+                count = 1
+
+    chains.append((chro, chain_start, chain_end, chain_direction, count))  # if not break, add the final one into list
+
+    return chains
+
+
+def __chain_tab(df, chain_interval=15000, anchor_min=200):
     """
     # the most important thing is the output and the input have same format
     # can use both list or both df, but a df combined with a list will be painful
@@ -65,6 +158,15 @@ def chain_tab(df, chain_interval=15000, anchor_min=200):
     return chain
 
 
+def chain_long():
+    pass
+
+
+def read_last_txt_im(txtfile):
+    pass
+
+
+
 if __name__=="__main__":
     import os
 
@@ -75,6 +177,6 @@ if __name__=="__main__":
 
     os.chdir("/home/zhaolab1/nanopore/nanoju")
     df=read_last_txt("chro.txt")
-    chain=chain_tab(df)
-    chain.to_csv("chro_chain.txt", sep="\t", header=False, index=False)
+    #chain=chain_tab(df)
+    #chain.to_csv("chro_chain.txt", sep="\t", header=False, index=False)
 

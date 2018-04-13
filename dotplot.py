@@ -8,7 +8,7 @@
 combine two chromosome sets into two continuous single contigs, and make alignment and draw figs
 """
 
-from utils import fasta2dic, myexe
+from Utils import fasta2dic, myexe
 from last import flow_maf
 import os
 
@@ -66,7 +66,7 @@ def flow_one(record_dict, prefix="combine", tree_keys=None):
     return fasta_file, bed_file
 
 
-def flow_maf(c_target, c_query, wkdir=None, prefix="scafone", core=32, lastal_paral=["-e40", "-l50"]):
+def __flow_maf_train(c_target, c_query, wkdir=None, prefix="scafone", core=32, lastal_paral=["-e40", "-l50"]):
     """
     contig_reliable: the contig short but accurate, cquery
     contig_long: c_target
@@ -120,17 +120,26 @@ def flow_dotplot(c_target, c_query, wkdir=None, key_target=None, key_query=None)
     target_dict=fasta2dic(c_target)
     query_dict=fasta2dic(c_query)
 
+    if key_target is None:
+        key_target=target_dict.keys()
+    if key_query is None:
+        key_query=sorted(query_dict.keys())
+
     target_fasta, target_bed=flow_one(target_dict, prefix="target", tree_keys=key_target)
     query_fasta, query_bed=flow_one(query_dict, prefix="query",tree_keys=key_query)
 
-    flow_maf(c_target=target_fasta, c_query=query_fasta, prefix="1vs1",core=40, lastal_paral=["-E0.05", "-m100", "-C2"])
+    flow_maf(c_target=target_fasta, c_query=query_fasta, prefix="1vs1",core=40)
+
 
 if __name__=="__main__":
-    c_target="cb4.fasta"
-    c_query="pseudo.fasta"
-    wkdir="/home/zhaolab1/data/matepair/pseudo"
+    c_target="../ref/cb4.fasta"
+    c_query="../ref/cni_chro.fa"
+    wkdir="/home/zhaolab1/data/matepair/out_hmb/cbrtwo/dot"
     keys=["I", "II", "III", "IV", "V", "X"]
 
-    flow_dotplot(c_target=c_target, c_query=c_query, wkdir=wkdir,key_target=keys, key_query=keys)
-
+    from last import read_last_to_bed12, bed2txt
+    flow_dotplot(c_target=c_target, c_query=c_query, wkdir=wkdir,key_target=keys )
+    os.chdir(wkdir)
+    bed12=read_last_to_bed12("1vs1.txt")
+    bed2txt(bed12, "1vs1.bed")
 

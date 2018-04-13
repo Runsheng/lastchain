@@ -11,7 +11,7 @@ require the chain file and the CrossMap package
 
 T rendering based
 """
-from utils import which, myexe
+from Utils import which, myexe
 from last import bin_check
 import os
 
